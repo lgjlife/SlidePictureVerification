@@ -206,10 +206,11 @@ public class ImgUtil {
 
 
         if((image.getWidth()  == IMAGE_MAX_WIDTH)
-//            || (image.getHeight()  == IMAGE_MAX_HEIGHT)){
+            || (image.getHeight()  == IMAGE_MAX_HEIGHT)){
             log.info("图片大小符合要求");
             return image;
         }
+
         else if((image.getWidth()  < IMAGE_MAX_WIDTH)
                 || (image.getHeight()  < IMAGE_MAX_HEIGHT)){
             log.info("图片太小．不符合要求w*h[300*240]");
