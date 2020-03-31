@@ -9,8 +9,11 @@ import slide.picture.verification.demo.image.ImageResult;
 import slide.picture.verification.demo.image.ImgUtil;
 import slide.picture.verification.demo.ret.RetCode;
 import slide.picture.verification.demo.ret.WebReturn;
+import slide.picture.verification.demo.time.TimeUtil;
 
 import javax.jws.WebResult;
+import java.util.concurrent.TimeUnit;
+
 
 @Slf4j
 @RestController
@@ -27,7 +30,10 @@ public class SliderController {
 
         try{
 
-            imageResult = ImgUtil.imageResult();
+            TimeUtil.start(1);
+            imageResult = new ImgUtil().imageResult();
+            TimeUtil.end(1);
+
             xPosCache = imageResult.getXpos();
             return new WebReturn(RetCode.IMAGE_REQ_SUCCESS,imageResult);
         }

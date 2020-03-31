@@ -7,8 +7,14 @@ import lombok.Data;
 public class ImageResult {
 
     int xpos;
+    int ypos;
+    int cutImageWidth;
+    int cutImageHeight;
+
     String  cutImage;
     String  oriImage;
+
+
 
 
 

@@ -15,16 +15,16 @@
         #captchaContainer{
             position: absolute;
             top: 50px;
-            left: 20%;
-            /*background-color: #f57a7a;*/
+            left: 40%;
+          /*  background-color: #f57a7a;*/
             height: 340px;
-            width: 600px;
+            width: 260px;
         }
         .header{
 
             position: absolute;
             top: 0px;
-            left: 300px;
+            left: 0px;
             background-color: rgb(245, 236, 236);
             height: 40px;
             width: 300px;
@@ -40,20 +40,13 @@
 
 
         }
-        #reInit{
-            position: absolute;
-            top: 0px;
-            right: 0px;
-            background-color: #827af5;
-            height: 40px;
-            width: 40px;
-        }
 
         #captchaImg{
             position: absolute;
             left: 0;
-            top: 0;
-
+            top: 40px;
+            height: 260px;
+            width: 300px;
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
@@ -64,10 +57,11 @@
         }
         #oriImg{
             position: absolute;
-            left: 300px;
-            top: 40px;
+            left: 0px;
+            top: 0px;
             width: 300px;
             height: 260px;
+
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
@@ -77,46 +71,13 @@
         }
         #cutImg{
             position: absolute;
-            left: 100px;
-            top: 40px;
-            width: 300px;
-            height: 260px;
-            border: none
+            border: none;
+            left: 0px;
         }
-        #message{
-
-            position: relative;
-            left: 370px;
-            top: 160px;
-            font-size:25px;
-            color: hsl(241, 86%, 23%);
-        }
-
-        #message_success{
-
-            position: relative;
-            left: 370px;
-            top: 160px;
-            font-size:25px;
-            font-weight: 900;
-            color: #ec3655;
-        }
-
-        #message_fail{
-
-            position: relative;
-            left: 370px;
-            top: 160px;
-            font-size:25px;
-            color: #ec3655;
-        }
-
-
-
         .sliderContainer {
             position: absolute;
             bottom: 0;
-            left: 300px;
+            left: 0px;
             text-align: center;
             width: 300px;
             height: 40px;
@@ -151,24 +112,6 @@
         }
         .slider_fail{
             border: 1px solid #ec3655;
-        }
-
-
-
-
-
-
-        .block {
-            position: absolute;
-            left: 0;
-            top: 0;
-            cursor: pointer;
-            cursor: grab;
-        }
-
-        .block:active {
-            cursor: pointer;
-            cursor: grabbing;
         }
 
 
@@ -278,16 +221,13 @@
         <!-- 标题栏　-->
         <div class="header">
             <span class="headerText">图片滑动验证</span>
-            <img id="reInit" src="/static/reInitIcon.png"/>
+            <span class="refreshIcon"/>
         </div> 
 
         <!-- 图片显示区域　-->
         <div id="captchaImg">
-              
-            <img id="oriImg" />
-            <img id="cutImg" />
-<!--            <span id="message">图片验证成功</span>-->
-                        
+            <img id="oriImg" src="dd" alt="原图"/>
+            <img id="cutImg" src="sa" alt="抠图"/>
         </div>
         <!--滑块显示区域-->
          <div class="sliderContainer">
@@ -303,29 +243,22 @@
         
     </div>
 
-    <img src="reInitIcon.png"/>
 
-    <img src="static/reInitIcon.png"/>
-
-    <img src="/static/reInitIcon.png"/>
     
 </body>
 
 <script>
+
+    //图片显示使用base64时的前缀,src=base64PrefixPath + imgBase64Value
     var base64PrefixPath="data:image/png;base64,";
 
-    //客户端返回的抠图原点X位置
-    var XPOS;
-
     var IMAGE_WIDTH = 300;
-    var RADIUS = 15;
     //初始化
-    var InitCutImageOffset =0;
     //滑块初始偏移量
     var sliderInitOffset = 0;
     //滑块移动的最值
     var MIN_MOVE = 0;
-    var MAX_MOVE = 260;
+    var MAX_MOVE = 0;
     //鼠标按下标志
     var mousedownFlag=false;
     //滑块移动的距离
@@ -335,21 +268,42 @@
     //滑块滑动使能
     var moveEnable = true;
 
+    var ImageMsg = {
+            //抠图的坐标
+            xpos: 0,
+            ypos: 0,
+            //抠图的大小
+            cutImageWidth: 0,
+            cutImageHeight: 0,
+            //原图的base64
+            oriImageSrc: 0,
+            //抠图的base64
+            cutImageSrc: 0,
+    }
+
+
+
   　//加载页面时进行初始化
     function init(){
         console.log("init")
 
-
-
         moveEnable = true;
         mousedownFlag=false;
-        console.log("InitCutImageOffset = " + InitCutImageOffset);
-        InitCutImageOffset = IMAGE_WIDTH - XPOS + RADIUS;
-        console.log("InitCutImageOffset = " + InitCutImageOffset);
-        $("#cutImg").css("left",InitCutImageOffset+"px");
+
         $(".slider").css("left",0+"px");
 
         initClass();
+
+        MAX_MOVE = IMAGE_WIDTH - ImageMsg.cutImageWidth;
+
+        console.log("ImageMsg = " + ImageMsg)
+        $("#cutImg").css("left",0+"px");
+        $("#oriImg").attr("src",ImageMsg.oriImageSrc)
+        $("#cutImg").attr("src",ImageMsg.cutImageSrc)
+        $("#cutImg").css("width",ImageMsg.cutImageWidth)
+        $("#cutImg").css("height",ImageMsg.cutImageHeight)
+        $("#cutImg").css("top",ImageMsg.ypos)
+
 
 
 
@@ -371,12 +325,13 @@
                 console.log(data.message);
 
                 if(data.data != null){
-                    XPOS= data.data.xpos;
-                    var oriImageSrc = base64PrefixPath + data.data.oriImage;
-                    var cutImageSrc = base64PrefixPath + data.data.cutImage;
 
-                    $("#oriImg").attr("src",oriImageSrc)
-                    $("#cutImg").attr("src",cutImageSrc)
+                    ImageMsg.oriImageSrc = base64PrefixPath + data.data.oriImage;
+                    ImageMsg.cutImageSrc = base64PrefixPath + data.data.cutImage;
+                    ImageMsg.xpos = data.data.xpos;
+                    ImageMsg.ypos = data.data.ypos;
+                    ImageMsg.cutImageWidth = data.data.cutImageWidth;
+                    ImageMsg.cutImageHeight = data.data.cutImageHeight;
 
                     init();
                 }
@@ -388,7 +343,7 @@
       requestVerification:{
         path: "slider/verification",
         request:function(){
-            $.get(httpRequest.requestVerification.path,{moveX:(moveX+RADIUS)},function(data,status){
+            $.get(httpRequest.requestVerification.path,{moveX:(moveX)},function(data,status){
                 console.log(data)
                 console.log(data.code);
                 console.log(data.message);
@@ -405,7 +360,7 @@
     }
 
     //刷新图片操作
-    $("#reInit").on("click",function(){
+    $(".refreshIcon").on("click",function(){
         httpRequest.requestImage.request();
     })
 
@@ -427,12 +382,13 @@
             }
 
             moveX = event.clientX - sliderInitOffset;
+
             moveX<MIN_MOVE?moveX=MIN_MOVE:moveX=moveX;
             moveX>MAX_MOVE?moveX=MAX_MOVE:moveX=moveX;
 
 
             $(this).css("left",moveX+"px");
-            $("#cutImg").css("left",InitCutImageOffset+moveX+"px");
+            $("#cutImg").css("left",moveX+"px");
         })
 
     })
@@ -450,17 +406,9 @@
     function checkLocation(){
 
         moveEnable = false;
+
+        //后端请求检测滑块位置
         httpRequest.requestVerification.request();
-        /*
-        if(( XPOS > ( moveX - MOVE_CHECK_ERROR)) 
-        && (XPOS < ( moveX + MOVE_CHECK_ERROR))){
-          console.log("验证成功");
-            checkSuccessHandle();
-        }
-        else{
-          console.log("验证失败");
-          checkFailHandle();
-        }*/
     }
 
     function checkSuccessHandle(){

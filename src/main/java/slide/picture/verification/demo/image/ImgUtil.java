@@ -1,5 +1,7 @@
 package slide.picture.verification.demo.image;
 
+import com.sun.org.apache.bcel.internal.generic.NEW;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import sun.misc.BASE64Encoder;
@@ -18,31 +20,38 @@ import java.util.Random;
 @Slf4j
 public class ImgUtil {
 
+
     //图片的路径
-    private static String basePathClasspath = "img/";
-    private static String basePathFile = "src/main/resources/img/";
+    private  String basePathClasspath = "img/";
+    private  String basePathFile = "src/main/resources/img/";
 
-    private static String basePath = basePathFile;
-    private static String basePathOutput = "src/main/resources/img/out/";
+    private  String basePath = basePathFile;
+    private  String basePathOutput = "src/main/resources/img/out/";
     //图片的最大大小
-    private static int IMAGE_MAX_WIDTH = 300;
-    private static int IMAGE_MAX_HEIGHT = 260;
+    private  static int IMAGE_MAX_WIDTH = 300;
+    private  static int IMAGE_MAX_HEIGHT = 260;
     //抠图上面的半径
-    private static int RADIUS = IMAGE_MAX_WIDTH/20;
+    private   static int RADIUS = IMAGE_MAX_WIDTH/20;
     //抠图区域的高度
-    private static int CUT_HEIGHT = IMAGE_MAX_WIDTH/5;
+    private   static int CUT_HEIGHT = IMAGE_MAX_WIDTH/5;
     //抠图区域的宽度
-    private static int CUT_WIDTH = IMAGE_MAX_WIDTH/5;
+    private   static int CUT_WIDTH = IMAGE_MAX_WIDTH/5;
     //被扣地方填充的颜色
-    private static int FLAG = 0x778899;
+    private   static int FLAG = 0x778899;
     //输出图片后缀
-    private static String IMAGE_SUFFIX =  "png";
-
-
+    private   static String IMAGE_SUFFIX =  "png";
 
     //
-    private static String ORI_IMAGE_KEY = "ORI_IMAGE_KEY";
-    private static String CUT_IMAGE_KEY = "CUT_IMAGE_KEY";
+    private  int imageOffset = 0;
+
+    //抠图部分凸起的方向
+    private  Location location;
+
+    ImageResult imageResult = new ImageResult();
+
+    //
+    private  String ORI_IMAGE_KEY = "ORI_IMAGE_KEY";
+    private  String CUT_IMAGE_KEY = "CUT_IMAGE_KEY";
 
     //抠图区的原点坐标(x0,y0)
 
@@ -55,8 +64,21 @@ public class ImgUtil {
         ****************
        (x0,yMax)　　　(xMax,yMax)
     */
-    private static int XPOS;
-    private static int YPOS;
+    private  int XPOS;
+    private  int YPOS;
+
+    @Data
+    private  class ImageMessage{
+
+        private int xpos;
+        private int ypos;
+        private int cutImageWidth;
+        private int cutImageHeight;
+
+    }
+
+    ImageMessage imageMessage = new ImageMessage();
+
 
 
     public static void main(String[] args) {
@@ -66,22 +88,21 @@ public class ImgUtil {
                  imageResult = ImgUtil.imageResult("1.png");
                 System.out.println();
             }*/
-            File file = new File(basePath+"ori");
+            /*File file = new File(basePath+"ori");
             File[] files = file.listFiles();
             for (File f:files){
 
                 log.info("本次压缩的文件为:" + f);
 
                 BufferedImage bufferedImage = ImageIO.read(f);
-                bufferedImage = ImgUtil.compressImage(bufferedImage,IMAGE_MAX_WIDTH,IMAGE_MAX_HEIGHT);
+                bufferedImage = this.compressImage(bufferedImage,IMAGE_MAX_WIDTH,IMAGE_MAX_HEIGHT);
 
                 ImageIO.write(bufferedImage,IMAGE_SUFFIX,
                         new File(basePath  + "list/" + new Random().nextInt(100)+"."+IMAGE_SUFFIX));
 
 
-            }
-
-
+            }*/
+            new ImgUtil().test();
 
             log.info("执行完成");
         }
@@ -89,6 +110,20 @@ public class ImgUtil {
             ex.getMessage();
         }
     }
+
+    void test() throws IOException{
+        BufferedImage image =  new BufferedImage(200, 200, BufferedImage.TYPE_INT_RGB);
+        for(int i = 0; i< 200; i++){
+            for(int j = 0; j < 100; j++){
+                image.setRGB(i,j,0xAFDC143C);
+
+            }
+        }
+
+        ImageIO.write(image,"png",new File(basePath+"a.png"));
+
+    }
+
 
     /**
      *功能描述 获取抠图区的坐标原点
@@ -99,42 +134,31 @@ public class ImgUtil {
      * @return:  void
      *
     */
-    public static void init(BufferedImage oriImage){
+    public  void createXYPos(BufferedImage oriImage){
 
         int height = oriImage.getHeight();
         int width = oriImage.getWidth();
 
-        XPOS = new Random().nextInt(width-CUT_WIDTH-RADIUS);
-        XPOS = correctionXpos(XPOS);
 
+        XPOS = new Random().nextInt(width-CUT_WIDTH-RADIUS);
         YPOS = new Random().nextInt(height-CUT_HEIGHT-RADIUS);
 
-    }
-
-    /**
-     *功能描述  校正原点的x坐标,使xPos始终在图像宽度的2/4-3/4处
-     * @author lgj
-     * @Description  
-     * @date 3/30/20
-     * @param: 
-     * @return:  int
-     *
-    */
-    private static int correctionXpos(int xPos){
-
+        //确保横坐标位于2/4－－3/4
         int div = (IMAGE_MAX_WIDTH/4);
 
-        if(xPos/div ==  0 ){
-            xPos = xPos + div*2;
+        if(XPOS/div ==  0 ){
+            XPOS = XPOS + div*2;
         }
-        else if(xPos/div ==  1 ){
-            xPos = xPos + div;
+        else if(XPOS/div ==  1 ){
+            XPOS = XPOS + div;
         }
-        else if(xPos/div ==  3 ){
-            xPos = xPos - div;
+        else if(XPOS/div ==  3 ){
+            XPOS = XPOS - div;
         }
-        return xPos;
+
     }
+
+
     /**
      *功能描述 对外提供的接口
      * @author lgj
@@ -145,14 +169,14 @@ public class ImgUtil {
      *
      */
 
-    public static ImageResult imageResult() throws IOException{
+    public  ImageResult imageResult() throws IOException{
         return imageResult(getRandomImage(basePath+"list"));
     }
 
-    public static ImageResult imageResult(File file) throws IOException {
+    public  ImageResult imageResult(File file) throws IOException {
 
 
-        ImageResult imageResult = new ImageResult();
+        
         log.info("file = {}",file.getName());
 
         BufferedImage oriBufferedImage = getBufferedImage(file);
@@ -161,22 +185,30 @@ public class ImgUtil {
         oriBufferedImage = checkImage(oriBufferedImage);
 
         //初始化原点坐标
-        init(oriBufferedImage);
+        createXYPos(oriBufferedImage);
         //获取被扣图像的标志图
         int[][] blockData = getBlockData(oriBufferedImage);
         //printBlockData(blockData);
 
+        //计算抠图区域的信息
+        createImageMessage();
+
         //获取扣了图的原图和被扣部分的图
         Map<String,BufferedImage> imageMap =  cutByTemplate(oriBufferedImage,blockData);
 
-        imageResult.setXpos(XPOS);
-        imageResult.setCutImage(ImageBase64(imageMap.get(CUT_IMAGE_KEY)));
+
         imageResult.setOriImage(ImageBase64(imageMap.get(ORI_IMAGE_KEY)));
+        imageResult.setCutImage(ImageBase64(imageMap.get(CUT_IMAGE_KEY)));
 
-        //对被扣出部分的图透明化
-        BufferedImage parentCutImage = drawTransparent(imageMap.get(CUT_IMAGE_KEY),blockData);
-        imageMap.put(CUT_IMAGE_KEY,parentCutImage);
+        imageResult.setXpos(imageMessage.getXpos());
+        imageResult.setYpos(imageMessage.getYpos());
+        imageResult.setCutImageWidth(imageMessage.getCutImageWidth());
+        imageResult.setCutImageHeight(imageMessage.getCutImageHeight());
 
+        return imageResult;
+    }
+
+    void testSave( Map<String,BufferedImage> imageMap)throws IOException{
         //for test
         if(false){
             int num = new Random().nextInt(100);
@@ -184,14 +216,62 @@ public class ImgUtil {
             ImageIO.write(imageMap.get(ORI_IMAGE_KEY),IMAGE_SUFFIX,oriImageFile);
 
             File  cutImageFile = new File(basePathOutput+ num + "-cutImageFile."+IMAGE_SUFFIX);
-            ImageIO.write(parentCutImage,IMAGE_SUFFIX,cutImageFile);
+            ImageIO.write(imageMap.get(CUT_IMAGE_KEY),IMAGE_SUFFIX,cutImageFile);
         }
-
-        //////////////////////
-
-        return imageResult;
     }
 
+    /**
+     *功能描述 
+     * @author lgj
+     * @Description 计算抠图的相关参数
+     * @date 3/31/20
+     * @param: 
+     * @return:  int
+     *
+    */
+    private  void createImageMessage(){
+
+        int x = 0,y = 0;
+        int w = 0, h = 0;
+
+
+        if(location == Location.UP){
+            x = XPOS;
+            y = YPOS - RADIUS;
+
+            w = CUT_WIDTH;
+            h = CUT_HEIGHT + RADIUS;
+        }
+        else if(location == Location.LEFT){
+            x = XPOS-RADIUS;
+            y = YPOS;
+
+            w = CUT_WIDTH + RADIUS;
+            h = CUT_HEIGHT;
+        }
+
+        else if(location == Location.DOWN){
+            x = XPOS;
+            y = YPOS;
+
+            w = CUT_WIDTH;
+            h = CUT_HEIGHT + RADIUS;
+        }
+
+        if(location == Location.RIGHT){
+
+            x = XPOS;
+            y = YPOS;
+
+            w = CUT_WIDTH + RADIUS;
+            h = CUT_HEIGHT;
+        }
+
+        imageMessage.setXpos(x);
+        imageMessage.setYpos(y);
+        imageMessage.setCutImageHeight(h);
+        imageMessage.setCutImageWidth(w);
+    }
     /**
      *功能描述 
      * @author lgj
@@ -201,7 +281,7 @@ public class ImgUtil {
      * @return:  java.awt.image.BufferedImage
      *
     */
-    private static BufferedImage checkImage(BufferedImage image) throws IOException {
+    private  BufferedImage checkImage(BufferedImage image) throws IOException {
 
 
 
@@ -238,7 +318,7 @@ public class ImgUtil {
      * @return:  java.awt.image.BufferedImage
      *
     */
-    public static BufferedImage drawTransparent(BufferedImage image,int[][] blockData) throws IOException{
+    public  BufferedImage drawTransparent(BufferedImage image,int[][] blockData) throws IOException{
 
         int width = image.getWidth();
         int height = image.getHeight();
@@ -281,6 +361,14 @@ public class ImgUtil {
         return parentImage;
     }
 
+    private Color color(int rgb){
+        // log.info("rgb = " + rgb);
+        int b = (0xff & rgb);
+        int g = (0xff & (rgb >> 8));
+        int r = (0xff & (rgb >> 16));
+        return new Color(r, g, b);
+    }
+
 
     /**
      *功能描述 获取抠完图的原图和被扣出来的图
@@ -291,28 +379,47 @@ public class ImgUtil {
      * @return:  java.util.Map<java.lang.String,java.awt.image.BufferedImage>
      *
     */
-    public static Map<String,BufferedImage> cutByTemplate(BufferedImage oriImage,  int[][] blockData){
+    public  Map<String,BufferedImage> cutByTemplate(BufferedImage oriImage,  int[][] blockData){
 
 
         Map<String,BufferedImage> imgMap = new HashMap<>();
 
-        int height = oriImage.getHeight();
-        int width = oriImage.getWidth();
+        BufferedImage cutImage = new BufferedImage(imageMessage.cutImageWidth,imageMessage.cutImageHeight,oriImage.getType());
 
-        BufferedImage cutImage = new BufferedImage(width,height,oriImage.getType());
+        // 获取Graphics2D
+        Graphics2D g2d = cutImage.createGraphics();
 
-        for(int x = 0; x< width; x++){
-            for(int y = 0; y < height; y++){
+        //透明化整张图
+        cutImage = g2d.getDeviceConfiguration()
+                .createCompatibleImage(imageMessage.cutImageWidth,imageMessage.cutImageHeight, Transparency.BITMASK);
+        g2d.dispose();
+        g2d = cutImage.createGraphics();
+        // 背景透明代码结束
+
+
+        log.info("imageMessage = {}",imageMessage);
+        int xmax = imageMessage.xpos + imageMessage.cutImageWidth;
+        int ymax = imageMessage.ypos + imageMessage.cutImageHeight;
+
+        for(int x = imageMessage.xpos; x< xmax; x++){
+            for(int y = imageMessage.ypos; y < ymax; y++){
 
                 int oriRgb = oriImage.getRGB(x,y);
 
                 if(blockData[x][y] == FLAG){
+
                     oriImage.setRGB(x,y,FLAG);
-                    cutImage.setRGB(x,y,oriRgb);
+
+                    g2d.setColor(color(oriRgb));
+                    g2d.setStroke(new BasicStroke(1f));
+                    g2d.fillRect(x-imageMessage.xpos, y-imageMessage.ypos, 1, 1);
 
                 }
             }
         }
+
+        // 释放对象
+        g2d.dispose();
 
         imgMap.put(ORI_IMAGE_KEY,oriImage);
         imgMap.put(CUT_IMAGE_KEY,cutImage);
@@ -328,13 +435,16 @@ public class ImgUtil {
      * @return:  int[][]
      *
     */
-    public static int[][] getBlockData(BufferedImage oriImage){
+    public  int[][] getBlockData(BufferedImage oriImage){
 
         int height = oriImage.getHeight();
         int width = oriImage.getWidth();
         int[][] blockData =new int[width][height];
 
+        Location locations[] = {Location.UP,Location.LEFT,Location.DOWN,Location.RIGHT};
+
         //矩形
+        //此处还可以优化，进行区域扫描 2020.3.31
         for(int x = 0; x< width; x++){
             for(int y = 0; y < height; y++){
 
@@ -353,9 +463,8 @@ public class ImgUtil {
         int xConcaveCenter=0,yConcaveCenter=0;
 
         //位于矩形的哪一边，0123--上下左右
-        int location = new Random().nextInt(3);
-
-        if(location == 0){
+        location = locations[new Random().nextInt(3)];
+        if(location == Location.UP){
             //上 凸起
             xBulgeCenter = XPOS +  CUT_WIDTH/2;
             yBulgeCenter = YPOS;
@@ -363,9 +472,8 @@ public class ImgUtil {
             xConcaveCenter = XPOS ;
             yConcaveCenter = YPOS + CUT_HEIGHT/2;
 
-
         }
-        else if(location == 1){
+        else if(location == Location.DOWN){
             //下　凸起
             xBulgeCenter = XPOS +  CUT_WIDTH/2;
             yBulgeCenter = YPOS + CUT_HEIGHT;
@@ -374,7 +482,7 @@ public class ImgUtil {
             xConcaveCenter = XPOS +  CUT_WIDTH;
             yConcaveCenter = YPOS + CUT_HEIGHT/2;
         }
-        else if(location == 2){
+        else if(location == Location.LEFT){
             //左　凸起
             xBulgeCenter = XPOS ;
             yBulgeCenter = YPOS + CUT_HEIGHT/2;
@@ -382,16 +490,23 @@ public class ImgUtil {
             //下　凹陷
             xConcaveCenter = XPOS +  CUT_WIDTH/2;
             yConcaveCenter = YPOS + CUT_HEIGHT;
+
         }
         else {
+            //Location.RIGHT
             //右　凸起
             xBulgeCenter = XPOS +  CUT_WIDTH;
             yBulgeCenter = YPOS + CUT_HEIGHT/2;
             //上　凹陷
             xConcaveCenter = XPOS +  CUT_WIDTH/2;
             yConcaveCenter = YPOS;
+
+
         }
 
+
+
+        //for test
         log.info("突出圆形位置:"+location);
 
         log.info("XPOS={}  YPOS={}",XPOS,YPOS);
@@ -406,7 +521,7 @@ public class ImgUtil {
             for(int y = yBulgeCenter-RADIUS; y < yBulgeCenter+RADIUS; y++){
                 //(x-a)2+(y-b)2 = r2
 
-                if(Math.pow((x-xBulgeCenter),2) + Math.pow((y-yBulgeCenter),2) <= RADIUS_POW2){
+                if(Math.pow((x-xBulgeCenter),2) + Math.pow((y-yBulgeCenter),2) < RADIUS_POW2){
                     blockData[x][y] = FLAG;
                 }
             }
@@ -428,15 +543,6 @@ public class ImgUtil {
         return blockData;
     }
 
-    private static  void printBlockData(int[][] data){
-
-        for(int x = 0; x< data.length; x++){
-            for(int y = 0; y < data[x].length; y++){
-                System.out.print(data[x][y]);
-            }
-            System.out.println();
-        }
-    }
 
     /**
      *功能描述 获取BufferedImage对象
@@ -447,7 +553,7 @@ public class ImgUtil {
      * @return:  java.awt.image.BufferedImage
      *
     */
-    public static BufferedImage getBufferedImage(File file)throws IOException{
+    public  BufferedImage getBufferedImage(File file)throws IOException{
 
         return ImageIO.read(file);
     }
@@ -462,7 +568,7 @@ public class ImgUtil {
      * @return:  java.lang.String
      *
      */
-    private static String ImageBase64(BufferedImage bufferedImage) throws IOException {
+    private  String ImageBase64(BufferedImage bufferedImage) throws IOException {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         ImageIO.write(bufferedImage, "png", out);
         //转成byte数组
@@ -479,7 +585,7 @@ public class ImgUtil {
      * @return
      * @throws Exception
      */
-    private static  File getRandomImage(String filePath) throws IOException {
+    private   File getRandomImage(String filePath) throws IOException {
         File file = new File(filePath);
         if (!file.exists()) {
             log.error("该文件路径{}不对", file.getAbsolutePath());
@@ -508,11 +614,24 @@ public class ImgUtil {
      * @return:  java.awt.image.BufferedImage
      *
     */
-    private static BufferedImage compressImage(BufferedImage image,int width,int height) throws IOException{
+    private  BufferedImage compressImage(BufferedImage image,int width,int height) throws IOException{
        return  Thumbnails.of(image)
                 .forceSize(width,height)
                //.width(width).height(height)
                .asBufferedImage();
+    }
+    /**
+     *功能描述 
+     * @author lgj
+     * @Description  抠图部分凸起的区域
+     * @date 3/31/20
+    */
+    private enum Location {
+        UP,
+        LEFT,
+        DOWN,
+        RIGHT;
+
     }
 
 
